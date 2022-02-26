@@ -20,9 +20,11 @@ contract RubicTokenStaking is FreezableToken, Ownable {
     uint256 public freezeTime = 1; //86400;
     uint256 public totalRBCEntered;
     uint256 public startDate = type(uint256).max;
+
     IERC20Minimal public immutable BRBC;
 
     mapping(address => uint256) public userEnteredAmount;
+    mapping(address => uint256) public userEnteredWhitelisted;
 
     EnumerableSet.AddressSet internal whitelist;
 
@@ -93,9 +95,8 @@ contract RubicTokenStaking is FreezableToken, Ownable {
 
     function enterWhitelist(uint256 _amount) external {
         require(whitelist.contains(msg.sender), "you are not in whitelist");
-        // if i enter for 50k RBC, i can't enter 25k additionally
         require(
-            userEnteredAmount[msg.sender].add(_amount) <=
+            userEnteredWhitelisted[msg.sender].add(_amount) <=
                 MAX_BRBC_PER_WHITELIST,
             "more than limit per user"
         );
@@ -115,6 +116,15 @@ contract RubicTokenStaking is FreezableToken, Ownable {
         _burn(msg.sender, xRBCAmount);
         BRBC.transfer(msg.sender, BRBCToReceive);
         MAX_BRBC_TOTAL = MAX_BRBC_TOTAL.add(BRBCToReceive);
+        /*
+        if (userEnteredAmount[msg.sender] >= BRBCToReceive) {
+            MAX_BRBC_TOTAL = MAX_BRBC_TOTAL.add(userEnteredAmount[msg.sender]);
+            userEnteredAmount[msg.sender] = 0;
+        } else {
+            MAX_BRBC_TOTAL = MAX_BRBC_TOTAL.add(BRBCToReceive);
+            userEnteredAmount[msg.sender] = userEnteredAmount[msg.sender].sub(BRBCToReceive);
+        }
+        */
         emit Left(msg.sender, xRBCAmount, BRBCToReceive);
     }
 
@@ -142,7 +152,7 @@ contract RubicTokenStaking is FreezableToken, Ownable {
     }
 
     function endWhitelist() external onlyOwner {
-        require(block.timestamp > startDate + 1 seconds, "whitelist not ended");
+        require(block.timestamp > startDate + 1 days, "whitelist not ended");
         MAX_BRBC_TOTAL = MAX_BRBC_TOTAL.add(whitelistPool);
         whitelistPool = 0;
     }
