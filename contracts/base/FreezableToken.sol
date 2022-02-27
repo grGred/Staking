@@ -1,6 +1,7 @@
+// SPDX-License-Identifier: MIT
 pragma solidity =0.7.6;
 
-import '../base/ERC20.sol';
+import "../base/ERC20.sol";
 
 abstract contract FreezableToken is ERC20 {
     using SafeMath for uint256;
@@ -19,7 +20,12 @@ abstract contract FreezableToken is ERC20 {
      * @param _owner The address to query the the balance of.
      * @return balance An uint256 representing the amount owned by the passed address.
      */
-    function balanceOf(address _owner) public view override returns (uint256 balance) {
+    function balanceOf(address _owner)
+        public
+        view
+        override
+        returns (uint256 balance)
+    {
         return super.balanceOf(_owner) + freezingBalance[_owner];
     }
 
@@ -28,7 +34,11 @@ abstract contract FreezableToken is ERC20 {
      * @param _owner The address to query the the balance of.
      * @return balance n uint256 representing the amount owned by the passed address.
      */
-    function actualBalanceOf(address _owner) external view returns (uint256 balance) {
+    function actualBalanceOf(address _owner)
+        external
+        view
+        returns (uint256 balance)
+    {
         uint256 count = freezingCount(_owner);
         uint256 availableTotal = 0;
         for (uint256 i = 0; i < count; i++) {
@@ -42,7 +52,11 @@ abstract contract FreezableToken is ERC20 {
         return (super.balanceOf(_owner) + availableTotal);
     }
 
-    function freezingBalanceOf(address _owner) public view returns (uint256 balance) {
+    function freezingBalanceOf(address _owner)
+        public
+        view
+        returns (uint256 balance)
+    {
         return freezingBalance[_owner];
     }
 
@@ -63,7 +77,11 @@ abstract contract FreezableToken is ERC20 {
      * @param _addr Address of freeze tokens owner.
      * @param _index Freezing portion index. It ordered by release date descending.
      */
-    function getFreezing(address _addr, uint256 _index) public view returns (uint64 _release, uint256 _balance) {
+    function getFreezing(address _addr, uint256 _index)
+        public
+        view
+        returns (uint64 _release, uint256 _balance)
+    {
         for (uint256 i = 0; i < _index + 1; i++) {
             _release = chains[toKey(_addr, _release)];
             if (_release == 0) {
@@ -115,7 +133,11 @@ abstract contract FreezableToken is ERC20 {
         }
     }
 
-    function toKey(address _addr, uint256 _release) internal pure returns (bytes32 result) {
+    function toKey(address _addr, uint256 _release)
+        internal
+        pure
+        returns (bytes32 result)
+    {
         // increase entropy
         result = 0x5749534800000000000000000000000000000000000000000000000000000000;
         assembly {

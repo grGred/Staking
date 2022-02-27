@@ -1,7 +1,10 @@
 import { ethers, network } from 'hardhat';
-import { expect } from 'chai';
+import chai from 'chai';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import Web3 from 'web3';
+import chaiAsPromised from 'chai-as-promised';
+chai.use(chaiAsPromised);
+const expect = chai.expect;
 
 describe('RubicTokenStaking', function () {
     let BRBC;
@@ -56,7 +59,8 @@ describe('RubicTokenStaking', function () {
             await BRBC.approve(RubicStaking.address, Web3.utils.toWei('10000', 'ether'));
             await RubicStaking.enterTo(Web3.utils.toWei('10000', 'ether'), Alice.address);
 
-            expect(await RubicStaking.balanceOf(Alice.address)).to.be.equal(
+            let balance = await RubicStaking.balanceOf(Alice.address);
+            expect(balance.toString()).to.be.equal(
                 Web3.utils.toWei('10000', 'ether')
             );
 
@@ -65,11 +69,12 @@ describe('RubicTokenStaking', function () {
             ]);
             await network.provider.send('evm_mine');
 
-            const AliceBalanceBefore = await BRBC.balanceOf(Alice.address);
+            const AliceBalanceBefore = await RubicStaking.balanceOf(Alice.address);
 
             await RubicStaking.connect(Alice).leave(Web3.utils.toWei('10000', 'ether'));
 
-            expect((await BRBC.balanceOf(Alice.address)).sub(AliceBalanceBefore)).to.be.eq(
+            let balanceAlice = await RubicStaking.balanceOf(Alice.address);
+            expect(((AliceBalanceBefore).sub(balanceAlice)).toString()).to.be.eq(
                 Web3.utils.toWei('10000', 'ether')
             );
         });
@@ -81,7 +86,7 @@ describe('RubicTokenStaking', function () {
                 Number(await RubicStaking.freezeTime())
             ]);
             await network.provider.send('evm_mine');
-            await expect(RubicStaking.leave(Web3.utils.toWei('12000', 'ether'))).to.be.revertedWith(
+            await expect(RubicStaking.leave(Web3.utils.toWei('12000', 'ether'))).to.be.rejectedWith(
                 'ERC20: burn amount exceeds balance'
             );
         });
@@ -90,7 +95,7 @@ describe('RubicTokenStaking', function () {
             await BRBC.approve(RubicStaking.address, Web3.utils.toWei('10000', 'ether'));
             await RubicStaking.enter(Web3.utils.toWei('10000', 'ether'));
 
-            await expect(RubicStaking.transfer(Bob.address, '1')).to.be.revertedWith(
+            await expect(RubicStaking.transfer(Bob.address, '1')).to.be.rejectedWith(
                 'ERC20: transfer amount exceeds balance'
             );
 
@@ -100,8 +105,8 @@ describe('RubicTokenStaking', function () {
             await network.provider.send('evm_mine');
 
             await RubicStaking.transfer(Bob.address, '1');
-
-            expect(await RubicStaking.balanceOf(Bob.address)).to.equal('1');
+            let balance = await RubicStaking.balanceOf(Bob.address);
+            expect(balance.toString()).to.equal('1');
         });
 
         it('should work with more than one participant', async function () {
@@ -119,13 +124,16 @@ describe('RubicTokenStaking', function () {
             await RubicStaking.connect(Bob).enter(Web3.utils.toWei('1000', 'ether'), {
                 from: Bob.address
             });
-            expect(await RubicStaking.balanceOf(Alice.address)).to.equal(
+            let balanceAlice = await RubicStaking.balanceOf(Alice.address);
+            expect(balanceAlice.toString()).to.equal(
                 Web3.utils.toWei('2000', 'ether')
             );
-            expect(await RubicStaking.balanceOf(Bob.address)).to.equal(
+            let balanceBob = await RubicStaking.balanceOf(Bob.address);
+            expect(balanceBob.toString()).to.equal(
                 Web3.utils.toWei('1000', 'ether')
             );
-            expect(await BRBC.balanceOf(RubicStaking.address)).to.equal(
+            let balanceStaking = await BRBC.balanceOf(RubicStaking.address);
+            expect(balanceStaking.toString()).to.equal(
                 Web3.utils.toWei('3000', 'ether')
             );
             // stakingContract get 3000 more BRBCs from an external source.
@@ -136,21 +144,24 @@ describe('RubicTokenStaking', function () {
             );
             // Alice deposits 1000 more BRBCs. She should receive 1000*3000/6000 = 500 shares.
             await RubicStaking.connect(Alice).enter(Web3.utils.toWei('1000', 'ether'));
-            expect(await RubicStaking.balanceOf(Alice.address)).to.equal(
+            let balanceAliceAfter = await RubicStaking.balanceOf(Alice.address);
+            expect(balanceAliceAfter.toString()).to.equal(
                 Web3.utils.toWei('2500', 'ether')
             );
-            expect(await RubicStaking.balanceOf(Bob.address)).to.equal(
+            let balanceBobAfter = await RubicStaking.balanceOf(Bob.address);
+            expect(balanceBobAfter.toString()).to.equal(
                 Web3.utils.toWei('1000', 'ether')
             );
             // Bob withdraws 500 shares. He should receive 500*7000/3500 = 1000 tokens
-            expect(await RubicStaking.canReceive(Web3.utils.toWei('500', 'ether'))).to.be.eq(
+            let recieveAmount = await RubicStaking.canReceive(Web3.utils.toWei('500', 'ether'));
+            expect(recieveAmount.toString()).to.be.eq(
                 Web3.utils.toWei('1000', 'ether')
             );
             await expect(
                 RubicStaking.connect(Bob).leave(Web3.utils.toWei('500', 'ether'), {
                     from: Bob.address
                 })
-            ).to.be.revertedWith('ERC20: burn amount exceeds balance');
+            ).to.be.rejectedWith('ERC20: burn amount exceeds balance');
             await network.provider.send('evm_increaseTime', [
                 Number(await RubicStaking.freezeTime())
             ]);
@@ -158,25 +169,32 @@ describe('RubicTokenStaking', function () {
             await RubicStaking.connect(Bob).leave(Web3.utils.toWei('500', 'ether'), {
                 from: Bob.address
             });
-            expect(await RubicStaking.canReceive(Web3.utils.toWei('500', 'ether'))).to.be.eq(
+            let recieveAmount1 = await RubicStaking.canReceive(Web3.utils.toWei('500', 'ether'));
+            expect(recieveAmount1.toString()).to.be.eq(
                 Web3.utils.toWei('1000', 'ether')
             );
-            expect(await RubicStaking.balanceOf(Alice.address)).to.equal(
+            let aliceBalance = await RubicStaking.balanceOf(Alice.address);
+            expect(aliceBalance.toString()).to.equal(
                 Web3.utils.toWei('2500', 'ether')
             );
-            expect(await RubicStaking.canReceive(Web3.utils.toWei('2500', 'ether'))).to.be.eq(
+            let stakingRecieves = await RubicStaking.canReceive(Web3.utils.toWei('2500', 'ether'));
+            expect(stakingRecieves.toString()).to.be.eq(
                 Web3.utils.toWei('5000', 'ether')
             );
-            expect(await RubicStaking.balanceOf(Bob.address)).to.equal(
+            let bobBalance = await RubicStaking.balanceOf(Bob.address);
+            expect(bobBalance.toString()).to.equal(
                 Web3.utils.toWei('500', 'ether')
             );
-            expect(await BRBC.balanceOf(RubicStaking.address)).to.equal(
+            let rbcStakingAmount = await BRBC.balanceOf(RubicStaking.address);
+            expect(rbcStakingAmount.toString()).to.equal(
                 Web3.utils.toWei('6000', 'ether')
             );
-            expect(await BRBC.balanceOf(Alice.address)).to.equal(
+            let rbcAliceAmount = await BRBC.balanceOf(Alice.address);
+            expect(rbcAliceAmount.toString()).to.equal(
                 Web3.utils.toWei('97000', 'ether')
             );
-            expect(await BRBC.balanceOf(Bob.address)).to.equal(Web3.utils.toWei('100000', 'ether'));
+            let rbcBobAmount = await BRBC.balanceOf(Bob.address);
+            expect(rbcBobAmount.toString()).to.equal(Web3.utils.toWei('100000', 'ether'));
         });
     });
 
@@ -184,17 +202,18 @@ describe('RubicTokenStaking', function () {
         it('should not allow enter if not enough approve', async function () {
             await expect(
                 RubicStaking.connect(Alice).enter(Web3.utils.toWei('10000', 'ether'))
-            ).to.be.revertedWith('allowance insufficient');
+            ).to.be.rejectedWith('allowance insufficient');
             await BRBC.connect(Alice).approve(RubicStaking.address, '50');
             await expect(
                 RubicStaking.connect(Alice).enter(Web3.utils.toWei('10000', 'ether'))
-            ).to.be.revertedWith('allowance insufficient');
+            ).to.be.rejectedWith('allowance insufficient');
             await BRBC.connect(Alice).approve(
                 RubicStaking.address,
                 Web3.utils.toWei('10000', 'ether')
             );
             await RubicStaking.connect(Alice).enter(Web3.utils.toWei('10000', 'ether'));
-            expect(await RubicStaking.balanceOf(Alice.address)).to.equal(
+            let balanceAlice = await RubicStaking.balanceOf(Alice.address);
+            expect(balanceAlice.toString()).to.equal(
                 Web3.utils.toWei('10000', 'ether')
             );
         });
@@ -223,10 +242,10 @@ describe('RubicTokenStaking', function () {
         });
         it('cant stake before start time', async () => {
             await RubicStaking.setStartDate('1738369056');
-            expect(RubicStaking.enter('100')).to.be.revertedWith('hasnt started yet');
+            expect(RubicStaking.enter('100')).to.be.rejectedWith('hasnt started yet');
         });
         it('cant stake more than user limit', async () => {
-            expect(RubicStaking.enter('100001' + '0'.repeat(18))).to.be.revertedWith(
+            expect(RubicStaking.enter('100001' + '0'.repeat(18))).to.be.rejectedWith(
                 'more than limit per user'
             );
         });
@@ -241,7 +260,7 @@ describe('RubicTokenStaking', function () {
             }
             expect(
                 RubicStaking.connect(signers[71]).enter('100000' + '0'.repeat(18))
-            ).to.be.revertedWith('more than total limit');
+            ).to.be.rejectedWith('more than total limit');
         });
         it('can decrease total limit and increase again', async () => {
             for (let i = 0; i < 70; i++) {
@@ -253,33 +272,39 @@ describe('RubicTokenStaking', function () {
                 await RubicStaking.connect(signers[i]).enter('100000' + '0'.repeat(18));
             }
             await BRBC.mint(signers[71].address, '100000' + '0'.repeat(18));
-            expect(
-                RubicStaking.connect(signers[71]).enter('100000' + '0'.repeat(18))
-            ).to.be.revertedWith('more than total limit');
+            expect(RubicStaking.connect(signers[71]).enter('100000' + '0'.repeat(18))
+            ).to.be.rejectedWith('more than total limit');
             await network.provider.send('evm_increaseTime', [
                 Number(await RubicStaking.freezeTime())
             ]);
+            await BRBC.connect(Carol).transfer(
+                RubicStaking.address,
+                Web3.utils.toWei('700', 'ether'),
+                { from: Carol.address }
+            );
             await network.provider.send('evm_mine');
             await RubicStaking.leave('100000' + '0'.repeat(18));
+
             await BRBC.connect(signers[71]).approve(
                 RubicStaking.address,
                 '10000000000000000' + '0'.repeat(18)
             );
-            await expect(
-                RubicStaking.connect(signers[71]).enter('100000' + '0'.repeat(18))
-            ).to.be.revertedWith('more than total limit');
+
+            RubicStaking.connect(signers[71]).enter('100000' + '0'.repeat(18)); // back to Limit (7100k)
         });
         it('sweep tokens test', async () => {
             const TestTokenFactory = await ethers.getContractFactory('TestERC20');
             const TestToken = await TestTokenFactory.deploy('100');
 
             await TestToken.transfer(RubicStaking.address, '100');
-            expect(await TestToken.balanceOf(signers[0].address)).to.be.eq('0');
-            await expect(RubicStaking.sweepTokens(BRBC.address)).to.be.revertedWith(
+            let balanceSigner = await TestToken.balanceOf(signers[0].address);
+            expect(balanceSigner.toString()).to.be.eq('0');
+            await expect(RubicStaking.sweepTokens(BRBC.address)).to.be.rejectedWith(
                 'cant sweep BRBC'
             );
             await RubicStaking.sweepTokens(TestToken.address);
-            expect(await TestToken.balanceOf(signers[0].address)).to.be.eq('100');
+            let balanceSignerAfter = await TestToken.balanceOf(signers[0].address);
+            expect(balanceSignerAfter.toString()).to.be.eq('100');
         });
     });
 });
