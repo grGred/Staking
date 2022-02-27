@@ -96,13 +96,15 @@ contract RubicTokenStaking is FreezableToken, Ownable {
 
     function enterWhitelist(uint256 _amount) external {
         require(whitelist.contains(msg.sender), "you are not in whitelist");
+        uint256 newWhitelistEntered = userEnteredWhitelisted[msg.sender].add(_amount);
         require(
-            userEnteredWhitelisted[msg.sender].add(_amount) <=
+            newWhitelistEntered <=
                 MAX_BRBC_PER_WHITELIST,
             "more than limit per user"
         );
         require(block.timestamp < startDate + 1 days, "whitelist ended");
         _enter(_amount, msg.sender);
+        userEnteredWhitelisted[msg.sender] = newWhitelistEntered;
     }
 
     // Claim back your BRBCs.
