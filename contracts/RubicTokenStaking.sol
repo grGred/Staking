@@ -15,7 +15,8 @@ contract RubicTokenStaking is FreezableToken, Ownable {
     uint256 constant MAX_BRBC_PER_WHITELIST = 25000 ether;
     uint256 constant MIN_BRCB = 1000 ether;
 
-    uint256 public maxRBCTotal = 7000000 ether;
+    uint256 public maxRBCTotal = 6300000 ether;
+    // will be calculated and changed
     uint256 public whitelistPool = 700000 ether;
     uint256 public freezeTime = 86400;
     uint256 public totalRBCEntered;
@@ -49,7 +50,7 @@ contract RubicTokenStaking is FreezableToken, Ownable {
         }
     }
 
-    function _enter(uint256 _amount, address _to) private {
+    function _enter(uint256 _amount, address _to, bool isWhitelisted) private {
         require(block.timestamp > startDate, "hasnt started yet");
         require(_amount >= MIN_BRCB, "too few amount");
 
@@ -57,7 +58,9 @@ contract RubicTokenStaking is FreezableToken, Ownable {
         uint256 newTotal = totalRBCEntered.add(_amount);
 
         require(newEntered <= MAX_BRBC_PER_USER, "more than limit per user");
-        require(newTotal <= maxRBCTotal, "more than total limit");
+        if (isWhitelisted == false) {
+            require(newTotal <= maxRBCTotal, "more than total limit");
+        }
         // Gets the amount of BRBC locked in the contract
         uint256 totalBRBC = BRBC.balanceOf(address(this));
         // Gets the amount of xBRBC in existence
@@ -85,13 +88,13 @@ contract RubicTokenStaking is FreezableToken, Ownable {
     // Enter the bar. Pay some BRBCSs. Earn some shares.
     // Locks BRBC and mints xBRBC
     function enterTo(uint256 _amount, address _to) external {
-        _enter(_amount, _to);
+        _enter(_amount, _to, false);
     }
 
     // Enter the bar. Pay some BRBCSs. Earn some shares.
     // Locks BRBC and mints xBRBC
     function enter(uint256 _amount) external {
-        _enter(_amount, msg.sender);
+        _enter(_amount, msg.sender, false);
     }
 
     function enterWhitelist(uint256 _amount) external {
@@ -103,7 +106,7 @@ contract RubicTokenStaking is FreezableToken, Ownable {
             "more than limit per user"
         );
         require(block.timestamp < startDate + 1 days, "whitelist ended");
-        _enter(_amount, msg.sender);
+        _enter(_amount, msg.sender, true);
         userEnteredWhitelisted[msg.sender] = newWhitelistEntered;
     }
 
