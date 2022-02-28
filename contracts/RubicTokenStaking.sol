@@ -11,14 +11,26 @@ contract RubicTokenStaking is FreezableToken, Ownable {
     using EnumerableSet for EnumerableSet.AddressSet;
     using SafeMath for uint256;
 
+    /*
+    official parameters
     uint256 constant MAX_BRBC_PER_USER = 100000 ether;
-    uint256 constant MAX_BRBC_PER_WHITELIST = 25000 ether;
+    uint256 constant MAX_BRBC_PER_WHITELIST = 5000 ether;
     uint256 constant MIN_BRCB = 1000 ether;
 
-    uint256 public maxRBCTotal = 6300000 ether;
-    // will be calculated and changed
-    uint256 public whitelistPool = 700000 ether;
+    uint256 public maxRBCTotal = 5650000 ether;
+    uint256 public whitelistPool = 1350000 ether;
+
     uint256 public freezeTime = 86400;
+    */
+
+    uint256 constant MAX_BRBC_PER_USER = 500 ether;
+    uint256 constant MAX_BRBC_PER_WHITELIST = 300 ether;
+    uint256 constant MIN_BRCB = 100 ether;
+
+    uint256 public maxRBCTotal = 1000 ether;
+    uint256 public whitelistPool = 1000 ether;
+    uint256 public freezeTime = 180;
+    
     uint256 public totalRBCEntered;
     uint256 public startDate = type(uint256).max;
 
@@ -148,7 +160,7 @@ contract RubicTokenStaking is FreezableToken, Ownable {
         return _amount.mul(BRBC.balanceOf(address(this))).div(totalShares);
     }
 
-    function isWhitelisted(address _whitelistAddress) external view returns (bool whitelisted) {
+    function whitelistedAddress(address _whitelistAddress) external view returns (bool whitelisted) {
         return whitelist.contains(_whitelistAddress);
     }
 
