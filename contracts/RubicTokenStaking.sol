@@ -21,7 +21,6 @@ contract RubicTokenStaking is FreezableToken, Ownable {
     uint256 public freezeTime = 86400;
     uint256 public totalRBCEntered;
     uint256 public startDate = type(uint256).max;
-    uint256 public lastRewardAmount;
 
     IERC20Minimal public immutable BRBC;
 
@@ -48,6 +47,8 @@ contract RubicTokenStaking is FreezableToken, Ownable {
         if (release < block.timestamp && balance > 0) {
             releaseAll(from);
         }
+        userEnteredAmount[from] = userEnteredAmount[from].sub(amount);
+        userEnteredAmount[to] = userEnteredAmount[to].add(amount);
     }
 
     function _enter(uint256 _amount, address _to, bool isWhitelisted) private {
@@ -121,13 +122,15 @@ contract RubicTokenStaking is FreezableToken, Ownable {
             .div(totalShares);
         _burn(msg.sender, xRBCAmount);
         BRBC.transfer(msg.sender, BRBCToReceive);
-        // Calculates new maxRBCTotal
-        if (lastRewardAmount > 0) {
-            maxRBCTotal = maxRBCTotal.add(BRBCToReceive).sub(lastRewardAmount);
-            lastRewardAmount = 0;
+
+        if (userEnteredAmount[msg.sender] >= BRBCToReceive) {
+            maxRBCTotal = maxRBCTotal.add(userEnteredAmount[msg.sender]);
+            userEnteredAmount[msg.sender] = 0;
         } else {
             maxRBCTotal = maxRBCTotal.add(BRBCToReceive);
+            userEnteredAmount[msg.sender] = userEnteredAmount[msg.sender].sub(BRBCToReceive);
         }
+
         emit Left(msg.sender, xRBCAmount, BRBCToReceive);
     }
 
@@ -164,15 +167,6 @@ contract RubicTokenStaking is FreezableToken, Ownable {
         whitelistPool = 0;
     }
 
-    function changeTotal(uint256 _newTotal) external onlyOwner {
-        maxRBCTotal = _newTotal;
-    }
-
-    function addRewards(uint256 _amount) external onlyOwner {
-        BRBC.transferFrom(msg.sender, address(this), _amount);
-        lastRewardAmount = lastRewardAmount.add(_amount);
-    }
-
     function setStartDate(uint256 _startDate) external onlyOwner {
         require(block.timestamp < _startDate);
         startDate = _startDate;
@@ -183,3 +177,4 @@ contract RubicTokenStaking is FreezableToken, Ownable {
         token.transfer(msg.sender, token.balanceOf(address(this)));
     }
 }
+
