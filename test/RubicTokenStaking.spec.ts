@@ -58,12 +58,10 @@ describe('RubicTokenStaking', function () {
         it('test enterTo', async () => {
             await BRBC.approve(RubicStaking.address, Web3.utils.toWei('10000', 'ether'));
             await RubicStaking.enterTo(Web3.utils.toWei('10000', 'ether'), Alice.address);
-
             let balance = await RubicStaking.balanceOf(Alice.address);
             expect(balance.toString()).to.be.equal(
                 Web3.utils.toWei('10000', 'ether')
             );
-
             await network.provider.send('evm_increaseTime', [
                 Number(await RubicStaking.freezeTime())
             ]);
@@ -95,18 +93,14 @@ describe('RubicTokenStaking', function () {
             await BRBC.approve(RubicStaking.address, Web3.utils.toWei('10000', 'ether'));
             await RubicStaking.enter(Web3.utils.toWei('10000', 'ether'));
 
-            await expect(RubicStaking.transfer(Bob.address, '1')).to.be.rejectedWith(
-                'ERC20: transfer amount exceeds balance'
+            expect(RubicStaking.transfer(Bob.address, '1')).to.be.rejectedWith(
+                'transfer forbidden'
             );
 
             await network.provider.send('evm_increaseTime', [
                 Number(await RubicStaking.freezeTime())
             ]);
             await network.provider.send('evm_mine');
-
-            await RubicStaking.transfer(Bob.address, '1');
-            let balance = await RubicStaking.balanceOf(Bob.address);
-            expect(balance.toString()).to.equal('1');
         });
 
         it('should work with more than one participant', async function () {
@@ -260,9 +254,9 @@ describe('RubicTokenStaking', function () {
 
             await RubicStaking.endWhitelist();
             await network.provider.send('evm_mine');
-            let unfilled = await RubicStaking.unfilledAmount();
             let max = await RubicStaking.maxRBCTotal();
-            expect(unfilled.toString()).to.be.eq(Web3.utils.toWei('550000', 'ether'));
+            let current = await RubicStaking.totalRBCEntered();
+            expect((max.sub(current)).toString()).to.be.eq(Web3.utils.toWei('550000', 'ether'));
             expect(max.toString()).to.be.eq(Web3.utils.toWei('7000000', 'ether'));
 
             for (let i = 70; i < 75; i++) {

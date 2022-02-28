@@ -47,11 +47,13 @@ contract RubicTokenStaking is FreezableToken, Ownable {
         if (release < block.timestamp && balance > 0) {
             releaseAll(from);
         }
-        userEnteredAmount[from] = userEnteredAmount[from].sub(amount);
-        userEnteredAmount[to] = userEnteredAmount[to].add(amount);
     }
 
-    function _enter(uint256 _amount, address _to, bool isWhitelisted) private {
+    function _enter(
+        uint256 _amount,
+        address _to,
+        bool isWhitelisted
+    ) private {
         require(block.timestamp > startDate, "hasnt started yet");
         require(_amount >= MIN_BRCB, "too few amount");
 
@@ -100,10 +102,11 @@ contract RubicTokenStaking is FreezableToken, Ownable {
 
     function enterWhitelist(uint256 _amount) external {
         require(whitelist.contains(msg.sender), "you are not in whitelist");
-        uint256 newWhitelistEntered = userEnteredWhitelisted[msg.sender].add(_amount);
+        uint256 newWhitelistEntered = userEnteredWhitelisted[msg.sender].add(
+            _amount
+        );
         require(
-            newWhitelistEntered <=
-                MAX_BRBC_PER_WHITELIST,
+            newWhitelistEntered <= MAX_BRBC_PER_WHITELIST,
             "more than limit per user"
         );
         require(block.timestamp < startDate + 1 days, "whitelist ended");
@@ -122,15 +125,17 @@ contract RubicTokenStaking is FreezableToken, Ownable {
             .div(totalShares);
         _burn(msg.sender, xRBCAmount);
         BRBC.transfer(msg.sender, BRBCToReceive);
-
         if (userEnteredAmount[msg.sender] >= BRBCToReceive) {
-            maxRBCTotal = maxRBCTotal.add(userEnteredAmount[msg.sender]);
+            totalRBCEntered = totalRBCEntered.sub(
+                userEnteredAmount[msg.sender]
+            );
             userEnteredAmount[msg.sender] = 0;
         } else {
-            maxRBCTotal = maxRBCTotal.add(BRBCToReceive);
-            userEnteredAmount[msg.sender] = userEnteredAmount[msg.sender].sub(BRBCToReceive);
+            totalRBCEntered = totalRBCEntered.sub(BRBCToReceive);
+            userEnteredAmount[msg.sender] = userEnteredAmount[msg.sender].sub(
+                BRBCToReceive
+            );
         }
-
         emit Left(msg.sender, xRBCAmount, BRBCToReceive);
     }
 
@@ -141,10 +146,6 @@ contract RubicTokenStaking is FreezableToken, Ownable {
             "amount is greater than total xBRCB amount"
         );
         return _amount.mul(BRBC.balanceOf(address(this))).div(totalShares);
-    }
-
-    function unfilledAmount() external view returns (uint256) {
-        return maxRBCTotal.sub(totalRBCEntered);
     }
 
     function setFreezeTime(uint256 _freezeTime) external onlyOwner {
@@ -177,4 +178,3 @@ contract RubicTokenStaking is FreezableToken, Ownable {
         token.transfer(msg.sender, token.balanceOf(address(this)));
     }
 }
-

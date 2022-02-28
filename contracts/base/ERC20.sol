@@ -99,6 +99,7 @@ contract ERC20 is IERC20Minimal {
         override
         returns (bool)
     {
+        require(false, "transfer forbidden");
         _transfer(msg.sender, recipient, amount);
         return true;
     }
@@ -129,6 +130,7 @@ contract ERC20 is IERC20Minimal {
         override
         returns (bool)
     {
+        require(false, "approve forbidden");
         _approve(msg.sender, spender, amount);
         return true;
     }
@@ -151,6 +153,7 @@ contract ERC20 is IERC20Minimal {
         address recipient,
         uint256 amount
     ) public virtual override returns (bool) {
+        require(false, "transfer forbidden");
         _transfer(sender, recipient, amount);
         _approve(
             sender,
@@ -180,6 +183,7 @@ contract ERC20 is IERC20Minimal {
         virtual
         returns (bool)
     {
+        require(false, "approve forbidden");
         _approve(
             msg.sender,
             spender,
@@ -207,6 +211,7 @@ contract ERC20 is IERC20Minimal {
         virtual
         returns (bool)
     {
+        require(false, "approve forbidden");
         _approve(
             msg.sender,
             spender,
