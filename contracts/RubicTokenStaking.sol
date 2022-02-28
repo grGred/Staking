@@ -125,7 +125,7 @@ contract RubicTokenStaking is FreezableToken, Ownable {
             .div(totalShares);
         _burn(msg.sender, xRBCAmount);
         BRBC.transfer(msg.sender, BRBCToReceive);
-        if (userEnteredAmount[msg.sender] >= BRBCToReceive) {
+        if (userEnteredAmount[msg.sender] <= BRBCToReceive) {
             totalRBCEntered = totalRBCEntered.sub(
                 userEnteredAmount[msg.sender]
             );
@@ -146,6 +146,10 @@ contract RubicTokenStaking is FreezableToken, Ownable {
             "amount is greater than total xBRCB amount"
         );
         return _amount.mul(BRBC.balanceOf(address(this))).div(totalShares);
+    }
+
+    function isWhitelisted(address _whitelistAddress) external view returns (bool whitelisted) {
+        return whitelist.contains(_whitelistAddress);
     }
 
     function setFreezeTime(uint256 _freezeTime) external onlyOwner {

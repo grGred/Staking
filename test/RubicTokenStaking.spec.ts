@@ -347,7 +347,7 @@ describe('RubicTokenStaking', function () {
             ).to.be.rejectedWith('more than total limit');
         });
 
-        it('can decrease total limit and increase again', async () => {
+        it.only('can decrease total limit and increase again', async () => {
             for (let i = 0; i < 63; i++) {
                 await BRBC.mint(signers[i].address, '100000' + '0'.repeat(18));
                 await BRBC.connect(signers[i]).approve(
@@ -355,27 +355,53 @@ describe('RubicTokenStaking', function () {
                     '10000000000000000' + '0'.repeat(18)
                 );
                 await RubicStaking.connect(signers[i]).enter('100000' + '0'.repeat(18));
-            }
+            } // max pool is 6300k
             await BRBC.mint(signers[71].address, '100000' + '0'.repeat(18));
             expect(RubicStaking.connect(signers[71]).enter('100000' + '0'.repeat(18))
             ).to.be.rejectedWith('more than total limit');
             await network.provider.send('evm_increaseTime', [
                 Number(await RubicStaking.freezeTime())
             ]);
-            await BRBC.connect(Carol).transfer(
-                RubicStaking.address,
-                Web3.utils.toWei('700', 'ether'),
-                { from: Carol.address }
-            );
             await network.provider.send('evm_mine');
-            await RubicStaking.leave('100000' + '0'.repeat(18));
+            await RubicStaking.leave('100000' + '0'.repeat(18)); // became 6200k
 
             await BRBC.connect(signers[71]).approve(
                 RubicStaking.address,
                 '10000000000000000' + '0'.repeat(18)
             );
+            await RubicStaking.connect(signers[71]).enter('100000' + '0'.repeat(18)); // back to Limit (6300k)
+            let current = await RubicStaking.totalRBCEntered();
 
-            RubicStaking.connect(signers[71]).enter('100000' + '0'.repeat(18)); // back to Limit (7100k)
+            expect(current.toString()).to.be.eq(Web3.utils.toWei('6300000', 'ether'));
+        });
+
+        it('can decrease total limit and rewards', async () => {
+            for (let i = 0; i < 63; i++) {
+                await BRBC.mint(signers[i].address, '100000' + '0'.repeat(18));
+                await BRBC.connect(signers[i]).approve(
+                    RubicStaking.address,
+                    '10000000000000000' + '0'.repeat(18)
+                );
+                await RubicStaking.connect(signers[i]).enter('100000' + '0'.repeat(18));
+            } // full pool to 6300k
+
+            await BRBC.mint(signers[90].address, '100000' + '0'.repeat(18));
+            await BRBC.connect(signers[90]).approve(
+                    RubicStaking.address,
+                    '10000000000000000' + '0'.repeat(18));
+            await BRBC.connect(signers[90]).transfer(
+                RubicStaking.address,
+                Web3.utils.toWei('6300', 'ether'),
+                { from: signers[90].address }
+            );
+            await network.provider.send('evm_increaseTime', [
+                Number(await RubicStaking.freezeTime())
+            ]);
+            await network.provider.send('evm_mine');
+            await RubicStaking.connect(signers[3]).leave(Web3.utils.toWei('100000', 'ether'));
+
+            let current = await RubicStaking.totalRBCEntered();
+            expect(current.toString()).to.be.eq(Web3.utils.toWei('6200000', 'ether'));
         });
 
         it('sweep tokens test', async () => {
