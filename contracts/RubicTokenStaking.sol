@@ -17,21 +17,22 @@ contract RubicTokenStaking is FreezableToken, Ownable {
     uint256 constant MAX_BRBC_PER_WHITELIST = 5000 ether;
     uint256 constant MIN_BRCB = 1000 ether;
 
-    uint256 public maxRBCTotal = 5650000 ether;
-    uint256 public whitelistPool = 1350000 ether;
+    uint256 public maxRBCTotal = 5695000 ether;
+    uint256 public maxRBCWhitelist = 1305000 ether;
 
     uint256 public freezeTime = 86400;
     */
-
+    // test parameters
     uint256 constant MAX_BRBC_PER_USER = 500 ether;
     uint256 constant MAX_BRBC_PER_WHITELIST = 300 ether;
     uint256 constant MIN_BRCB = 100 ether;
 
-    uint256 public maxRBCTotal = 1000 ether;
-    uint256 public whitelistPool = 1000 ether;
-    uint256 public freezeTime = 180;
-    
+    uint256 public maxRBCTotal = 400 ether;
+    uint256 public maxRBCWhitelist = 600 ether;
+    uint256 public freezeTime = 300;
+
     uint256 public totalRBCEntered;
+    uint256 public totalRBCWhitelistEntered;
     uint256 public startDate = type(uint256).max;
 
     IERC20Minimal public immutable BRBC;
@@ -47,7 +48,7 @@ contract RubicTokenStaking is FreezableToken, Ownable {
     // Define the BRBC token contract
     constructor(IERC20Minimal _BRBC) ERC20("Rubic Staking Token", "xBRBC") {
         BRBC = _BRBC;
-        startDate = block.timestamp;
+        startDate = block.timestamp + 100;
     }
 
     function _beforeTokenTransfer(
@@ -71,11 +72,16 @@ contract RubicTokenStaking is FreezableToken, Ownable {
 
         uint256 newEntered = userEnteredAmount[_to].add(_amount);
         uint256 newTotal = totalRBCEntered.add(_amount);
+        uint256 newTotalWhitelsit = totalRBCWhitelistEntered.add(_amount);
 
         require(newEntered <= MAX_BRBC_PER_USER, "more than limit per user");
-        if (isWhitelisted == false) {
+
+        if (isWhitelisted) {
+            require(newTotalWhitelsit <= maxRBCWhitelist, "more than total whitelist limit");
+        } else {
             require(newTotal <= maxRBCTotal, "more than total limit");
         }
+
         // Gets the amount of BRBC locked in the contract
         uint256 totalBRBC = BRBC.balanceOf(address(this));
         // Gets the amount of xBRBC in existence
@@ -95,8 +101,12 @@ contract RubicTokenStaking is FreezableToken, Ownable {
         BRBC.transferFrom(msg.sender, address(this), _amount);
 
         userEnteredAmount[_to] = newEntered;
-        totalRBCEntered = newTotal;
 
+        if (isWhitelisted) {
+            totalRBCWhitelistEntered = newTotalWhitelsit;
+        } else {
+            totalRBCEntered = newTotal;
+        }
         emit Entered(_to, _amount, xRBCToReceive);
     }
 
@@ -121,7 +131,7 @@ contract RubicTokenStaking is FreezableToken, Ownable {
             newWhitelistEntered <= MAX_BRBC_PER_WHITELIST,
             "more than limit per user"
         );
-        require(block.timestamp < startDate + 1 days, "whitelist ended");
+        require(block.timestamp < startDate + 600 seconds, "whitelist ended");
         _enter(_amount, msg.sender, true);
         userEnteredWhitelisted[msg.sender] = newWhitelistEntered;
     }
@@ -160,6 +170,10 @@ contract RubicTokenStaking is FreezableToken, Ownable {
         return _amount.mul(BRBC.balanceOf(address(this))).div(totalShares);
     }
 
+    function total() external view returns (uint256 totalSum) {
+        return totalRBCEntered.add(totalRBCWhitelistEntered);
+    }
+
     function whitelistedAddress(address _whitelistAddress) external view returns (bool whitelisted) {
         return whitelist.contains(_whitelistAddress);
     }
@@ -179,9 +193,11 @@ contract RubicTokenStaking is FreezableToken, Ownable {
     }
 
     function endWhitelist() external onlyOwner {
-        require(block.timestamp > startDate + 1 days, "whitelist not ended");
-        maxRBCTotal = maxRBCTotal.add(whitelistPool);
-        whitelistPool = 0;
+        require(block.timestamp > startDate + 600 seconds, "whitelist not ended");
+        maxRBCTotal = maxRBCTotal.add(maxRBCWhitelist);
+        totalRBCEntered = totalRBCEntered.add(totalRBCWhitelistEntered);
+        totalRBCWhitelistEntered = 0;
+        maxRBCWhitelist = 0;
     }
 
     function setStartDate(uint256 _startDate) external onlyOwner {
